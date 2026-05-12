@@ -1,0 +1,42 @@
+Disease,Precaution_1,Precaution_2,Precaution_3,Precaution_4
+Drug Reaction,Stop the medication immediately,Consult a doctor,Avoid self-medication,Follow prescribed treatment
+Malaria,Consult a doctor early,Use mosquito nets,Keep surroundings clean,Stay hydrated
+Allergy,Avoid known allergens,Apply soothing lotion,Keep affected area clean,Consult doctor if severe
+Hypothyroidism,Maintain regular exercise,Follow a balanced diet,Reduce stress,Get adequate sleep
+Psoriasis,Keep skin moisturized,Avoid harsh soaps,Reduce stress,Consult dermatologist
+GERD,Avoid spicy and fatty foods,Do not lie down after meals,Maintain healthy weight,Eat smaller meals
+Chronic cholestasis,Take prescribed medication,Avoid fatty foods,Stay hydrated,Consult doctor regularly
+Hepatitis A,Maintain hygiene,Wash hands regularly,Avoid contaminated food,Consult doctor
+Osteoarthritis,Exercise regularly,Maintain healthy weight,Use hot/cold therapy,Consult doctor
+(vertigo) Paroxysmal Positional Vertigo,Avoid sudden head movements,Move slowly when changing positions,Rest during dizziness,Consult doctor if frequent
+Hypoglycemia,Consume sugar immediately (juice/glucose),Eat regular meals,Monitor blood sugar,Consult doctor
+Acne,Keep skin clean,Avoid oily products,Drink plenty of water,Do not squeeze pimples
+Diabetes,Monitor blood sugar levels,Follow healthy diet,Exercise regularly,Take medication as prescribed
+Impetigo,Keep affected area clean,Apply prescribed antibiotics,Avoid touching sores,Consult doctor
+Hypertension,Reduce salt intake,Exercise regularly,Manage stress,Monitor blood pressure
+Peptic ulcer disease,Avoid spicy food,Limit alcohol consumption,Take medications properly,Consult doctor
+Dimorphic hemmorhoids(piles),Eat high-fiber diet,Drink plenty of water,Avoid straining during bowel movement,Take warm sitz baths
+Common Cold,Drink warm fluids,Take steam inhalation,Rest well,Avoid cold exposure
+Chicken pox,Avoid scratching blisters,Maintain hygiene,Stay isolated to prevent spread,Consult doctor if severe
+Cervical spondylosis,Maintain good posture,Exercise regularly,Use heat/cold packs,Consult physiotherapist
+Hyperthyroidism,Follow prescribed treatment,Avoid excessive iodine intake,Manage stress,Consult doctor regularly
+Urinary tract infection,Drink plenty of water,Maintain hygiene,Urinate frequently,Avoid holding urine
+Varicose veins,Avoid standing for long periods,Elevate legs while resting,Use compression stockings,Exercise regularly
+AIDS,Maintain hygiene,Avoid infections,Take antiretroviral therapy,Consult doctor regularly
+Paralysis (brain hemorrhage),Seek immediate medical help,Follow rehabilitation therapy,Maintain healthy diet,Consult specialist
+Typhoid,Drink clean water,Avoid outside food,Take prescribed antibiotics,Maintain hygiene
+Hepatitis B,Get vaccinated (if not infected),Avoid alcohol,Follow medical advice,Regular checkups
+Fungal infection,Keep affected area dry,Maintain hygiene,Use antifungal medication,Wear clean clothes
+Hepatitis C,Avoid alcohol,Take prescribed medication,Regular monitoring,Consult doctor
+Migraine,Avoid triggers (stress, light),Maintain sleep schedule,Stay hydrated,Consult doctor
+Bronchial Asthma,Avoid allergens,Use inhaler as prescribed,Stay away from smoke,Consult doctor
+Alcoholic hepatitis,Completely stop alcohol,Follow balanced diet,Take medications,Consult doctor
+Jaundice,Drink clean water,Avoid oily food,Take adequate rest,Consult doctor
+Hepatitis E,Drink clean water,Avoid contaminated food,Rest well,Consult doctor
+Dengue,Stay hydrated,Use mosquito protection,Monitor platelet count,Consult doctor
+Hepatitis D,Follow medical advice,Avoid alcohol,Take medications,Regular checkups
+Heart attack,Call emergency services immediately,Chew aspirin (if advised),Stay calm,Avoid physical exertion
+Pneumonia,Take prescribed antibiotics,Get adequate rest,Stay hydrated,Consult doctor
+Arthritis,Exercise regularly,Maintain healthy weight,Use hot/cold therapy,Consult doctor
+Gastroenteritis,Drink ORS solution,Avoid solid food initially,Rest well,Gradually resume normal diet
+Tuberculosis,Cover mouth while coughing,Take full medication course,Maintain hygiene,Consult doctor regularly

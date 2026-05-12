@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedAI — Personalised Medicine Recommendation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #0b0e13;
+  --surface:  #111520;
+  --surface2: #171d2e;
+  --surface3: #1e2438;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #e8eaf0;
+  --muted:    #6b7280;
+  --accent:   #4fffb0;
+  --accent2:  #00c8ff;
+  --warn:     #ffb547;
+  --danger:   #ff6b6b;
+  --serif:    'DM Serif Display', Georgia, serif;
+  --mono:     'DM Mono', 'Courier New', monospace;
+  --sans:     'Instrument Sans', system-ui, sans-serif;
+  --r:        12px;
+  --r-sm:     6px;
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(79,255,176,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,255,176,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+.page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 1.5rem 8rem; }
+
+/* ── Header ── */
+header {
+  padding: 3.5rem 0 2.5rem;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+  border-bottom: 1px solid var(--border); margin-bottom: 3rem;
+  animation: fadeDown 0.6s ease both;
+}
+.logo { font-family: var(--serif); font-size: 2rem; }
+.logo span { color: var(--accent); font-style: italic; }
+.tagline { font-size: 12px; color: var(--muted); font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+.header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-family: var(--mono); padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border2); color: var(--muted); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+
+/* ── Input ── */
+.input-section { animation: fadeUp 0.7s 0.1s ease both; }
+.input-label { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: .75rem; display: block; }
+.chips-area { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
+.chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(79,255,176,0.08); border: 1px solid rgba(79,255,176,0.2); color: var(--accent); font-size: 12px; font-family: var(--mono); padding: 4px 10px; border-radius: 999px; animation: popIn 0.2s ease; }
+.chip-remove { cursor: pointer; color: rgba(79,255,176,0.5); font-size: 14px; background: none; border: none; padding: 0; line-height: 1; }
+.chip-remove:hover { color: var(--danger); }
+.input-wrapper { position: relative; margin-bottom: 1rem; }
+.symptom-input { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 1rem 1.25rem; color: var(--text); font-family: var(--mono); font-size: 14px; resize: none; line-height: 1.7; transition: border-color .2s, box-shadow .2s; outline: none; min-height: 80px; }
+.symptom-input:focus { border-color: rgba(79,255,176,0.4); box-shadow: 0 0 0 3px rgba(79,255,176,0.07); }
+.symptom-input::placeholder { color: var(--muted); }
+.autocomplete-box { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r); z-index: 50; display: none; max-height: 220px; overflow-y: auto; }
+.autocomplete-box.open { display: block; }
+.ac-item { padding: 9px 16px; font-size: 13px; font-family: var(--mono); color: var(--muted); cursor: pointer; transition: background .12s, color .12s; }
+.ac-item:hover, .ac-item.focused { background: rgba(79,255,176,0.08); color: var(--accent); }
+.ac-match { color: var(--accent); font-weight: 500; }
+.btn-row { display: flex; gap: 10px; align-items: center; }
+.btn-analyse { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #0b0e13; font-family: var(--mono); font-size: 13px; font-weight: 500; padding: .7rem 1.5rem; border: none; border-radius: var(--r); cursor: pointer; transition: transform .15s, opacity .15s; letter-spacing: .04em; }
+.btn-analyse:hover { opacity: .88; transform: translateY(-1px); }
+.btn-analyse:active { transform: scale(.98); }
+.btn-analyse:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn-clear { background: none; border: 1px solid var(--border2); color: var(--muted); font-family: var(--mono); font-size: 12px; padding: .7rem 1.1rem; border-radius: var(--r); cursor: pointer; transition: color .15s; }
+.btn-clear:hover { color: var(--text); }
+.hint { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-left: auto; }
+
+/* ── Loader ── */
+.loader { display: none; align-items: center; gap: 12px; padding: 2rem 0; color: var(--muted); font-family: var(--mono); font-size: 13px; }
+.loader.active { display: flex; }
+.loader-bar { width: 180px; height: 2px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.loader-bar::after { content: ''; display: block; width: 60%; height: 100%; background: var(--accent); border-radius: 999px; animation: slide 1.1s ease-in-out infinite alternate; }
+
+#result { margin-top: 2.5rem; }
+
+/* ── Summary card ── */
+.summary-card { background: var(--surface); border: 1px solid rgba(79,255,176,0.18); border-radius: var(--r); padding: 1.5rem; animation: fadeUp .5s ease both; margin-bottom: 10px; }
+.summary-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+.summary-disease { font-family: var(--serif); font-size: 1.9rem; line-height: 1.15; }
+.summary-disease small { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; font-style: normal; }
+.model-badge { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; color: var(--muted); border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px; margin-top: 8px; }
+.sev-badge { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 2px 10px; border-radius: 999px; margin-top: 6px; margin-left: 6px; }
+.sev-low      { background: rgba(79,255,176,0.08);  border: 1px solid rgba(79,255,176,0.25);  color: var(--accent); }
+.sev-moderate { background: rgba(255,181,71,0.08);  border: 1px solid rgba(255,181,71,0.25);  color: var(--warn); }
+.sev-high     { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.25); color: var(--danger); }
+.sev-critical { background: rgba(255,50,50,0.15);   border: 1px solid rgba(255,50,50,0.4);    color: #ff3232; }
+.conf-block { flex-shrink: 0; text-align: right; }
+.conf-number { font-family: var(--serif); font-size: 2.6rem; line-height: 1; }
+.conf-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 3px; }
+.conf-bar-wrap { width: 100px; height: 2px; background: var(--border2); border-radius: 999px; margin-top: 8px; overflow: hidden; margin-left: auto; }
+.conf-bar { height: 100%; border-radius: 999px; transition: width .8s cubic-bezier(.16,1,.3,1); }
+.summary-desc { font-size: 13px; color: rgba(232,234,240,.75); line-height: 1.7; margin-bottom: 1.25rem; }
+.contribs { margin-bottom: 1.25rem; }
+.contrib-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.contrib-name { width: 160px; font-size: 11px; font-family: var(--mono); color: var(--muted); text-align: right; flex-shrink: 0; }
+.contrib-track { flex: 1; height: 3px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.contrib-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 999px; transform-origin: left; animation: growX .7s cubic-bezier(.16,1,.3,1) both; }
+.alts-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.alts-row:last-child { border-bottom: none; }
+.alts-name { flex: 1; font-size: 12px; font-family: var(--mono); color: var(--muted); }
+.alts-bar-wrap { width: 70px; height: 2px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.alts-bar { height: 100%; background: var(--accent2); border-radius: 999px; }
+.alts-prob { font-size: 11px; font-family: var(--mono); color: var(--accent2); }
+.summary-section-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+/* ── View Details Button ── */
+.btn-details { display: inline-flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: var(--mono); font-size: 12px; font-weight: 500; padding: .6rem 1.2rem; border-radius: var(--r); cursor: pointer; transition: background .15s, transform .15s; letter-spacing: .04em; }
+.btn-details:hover { background: rgba(79,255,176,0.08); transform: translateY(-1px); }
+.btn-details:active { transform: scale(.98); }
+.btn-details .chevron { display: inline-block; transition: transform .3s cubic-bezier(.16,1,.3,1); font-style: normal; font-size: 11px; line-height: 1; }
+.btn-details.open .chevron { transform: rotate(180deg); }
+
+/* ── Detail Drawer ── */
+.detail-drawer { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r); overflow: hidden; max-height: 0; transition: max-height .55s cubic-bezier(.16,1,.3,1), opacity .35s ease; opacity: 0; margin-bottom: 10px; }
+.detail-drawer.open { max-height: 1600px; opacity: 1; }
+
+/* Tab bar */
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 1rem; overflow-x: auto; }
+.tab-bar::-webkit-scrollbar { height: 2px; }
+.tab-btn { display: inline-flex; align-items: center; gap: 6px; padding: .75rem 1rem; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s; margin-bottom: -1px; letter-spacing: .06em; text-transform: uppercase; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-icon { font-size: 13px; }
+.tab-panels { padding: 1.5rem; }
+.tab-panel { display: none; animation: fadeUp .35s ease both; }
+.tab-panel.active { display: block; }
+
+/* Detail section title */
+.detail-section-title { font-family: var(--mono); font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+.detail-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* Item list */
+.item-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.item-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; font-family: var(--mono); color: rgba(232,234,240,.82); line-height: 1.55; padding: 9px 12px; background: var(--surface3); border-radius: var(--r-sm); border: 1px solid var(--border); }
+.item-list li::before { content: '→'; color: var(--accent); flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+.med-list li { border-left: 2px solid rgba(0,200,255,.3); }
+.med-list li::before { color: var(--accent2); }
+
+/* Diet / workout grids */
+.diet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.diet-card { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: rgba(232,234,240,.82); display: flex; align-items: center; gap: 8px; }
+.diet-card::before { content: '◆'; color: var(--accent); font-size: 8px; flex-shrink: 0; }
+.workout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.workout-card { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 14px; font-family: var(--mono); font-size: 12px; color: rgba(232,234,240,.82); display: flex; align-items: center; gap: 8px; }
+.workout-card::before { content: '▸'; color: var(--accent2); flex-shrink: 0; }
+
+/* Doctors */
+.doc-category { display: inline-flex; align-items: center; gap: 6px; background: rgba(79,255,176,0.07); border: 1px solid rgba(79,255,176,0.18); color: var(--accent); font-family: var(--mono); font-size: 11px; padding: 4px 12px; border-radius: 999px; margin-bottom: 1.25rem; }
+.doc-section { margin-bottom: 1.5rem; }
+.doc-section-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .6rem; }
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.doc-card { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+.doc-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.2); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--accent2); flex-shrink: 0; }
+.doc-name { font-size: 12px; font-family: var(--mono); color: rgba(232,234,240,.85); line-height: 1.4; }
+.no-doctors { font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 1rem; background: var(--surface3); border-radius: var(--r-sm); border: 1px solid var(--border); }
+
+/* ── Low confidence ── */
+.low-mode-head { display: flex; align-items: center; gap: 12px; padding: 1.25rem; background: rgba(255,181,71,0.06); border: 1px solid rgba(255,181,71,0.2); border-radius: var(--r); margin-bottom: 1rem; animation: fadeUp .5s ease both; }
+.low-mode-head p { font-size: 13px; color: var(--warn); font-family: var(--mono); }
+.low-alt-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px; margin-bottom: 2px; border-radius: var(--r-sm); cursor: pointer; transition: background .12s; border: 1px solid transparent; }
+.low-alt-row:hover { background: rgba(255,255,255,0.03); border-color: var(--border); }
+.low-alt-name { flex: 1; font-size: 13px; font-family: var(--mono); color: var(--muted); transition: color .15s; }
+.low-alt-row:hover .low-alt-name { color: var(--text); }
+.low-alt-bar-wrap { width: 80px; height: 2px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.low-alt-bar { height: 100%; background: var(--accent2); border-radius: 999px; }
+.low-alt-prob { font-size: 12px; font-family: var(--mono); color: var(--accent2); min-width: 42px; text-align: right; }
+.low-details-hint { font-size: 11px; font-family: var(--mono); color: var(--muted); opacity: 0; transition: opacity .15s; white-space: nowrap; }
+.low-alt-row:hover .low-details-hint { opacity: 1; }
+.low-alt-row.active-row { border-color: rgba(79,255,176,0.2); background: rgba(79,255,176,0.03); }
+.low-alt-row.active-row .low-alt-name { color: var(--accent); }
+.low-drawer { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r); overflow: hidden; max-height: 0; opacity: 0; transition: max-height .55s cubic-bezier(.16,1,.3,1), opacity .35s ease; margin: 4px 0 8px; }
+.low-drawer.open { max-height: 1600px; opacity: 1; }
+
+/* ── Misc ── */
+.error-box { display: flex; align-items: center; gap: 10px; padding: 1rem 1.25rem; background: rgba(255,107,107,0.07); border: 1px solid rgba(255,107,107,0.2); border-radius: var(--r); font-family: var(--mono); font-size: 13px; color: var(--danger); }
+.unknown-banner { margin-top: 10px; padding: .75rem 1rem; background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.15); border-radius: var(--r); font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.did-you-mean { color: var(--accent); cursor: pointer; border-bottom: 1px dashed rgba(79,255,176,0.4); transition: opacity .15s; }
+.did-you-mean:hover { opacity: .75; }
+.disclaimer { margin-top: 1.5rem; padding: 1rem 1.25rem; border-left: 2px solid var(--warn); background: rgba(255,181,71,0.04); border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 12px; color: var(--muted); font-family: var(--mono); line-height: 1.7; animation: fadeUp .5s .4s ease both; }
+.details-loading { display: flex; align-items: center; gap: 12px; padding: 2rem 1.5rem; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.spin { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+.empty { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+/* ── Animations ── */
+@keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeUp   { from{opacity:0;transform:translateY(14px)}  to{opacity:1;transform:translateY(0)} }
+@keyframes popIn    { from{opacity:0;transform:scale(.85)}        to{opacity:1;transform:scale(1)}    }
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes slide    { from{transform:translateX(-100%)} to{transform:translateX(200%)} }
+@keyframes growX    { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:999px; }
+
+/* ── History ── */
+.history-section { margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+.history-toggle { display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--muted); font-family: var(--mono); font-size: 11px; cursor: pointer; letter-spacing: .08em; text-transform: uppercase; padding: 0; transition: color .15s; }
+.history-toggle:hover { color: var(--text); }
+.history-toggle .h-chevron { display: inline-block; transition: transform .3s; font-style: normal; }
+.history-toggle.open .h-chevron { transform: rotate(180deg); }
+.history-list { display: flex; flex-direction: column; gap: 6px; margin-top: 1rem; max-height: 0; overflow: hidden; transition: max-height .4s cubic-bezier(.16,1,.3,1); }
+.history-list.open { max-height: 600px; }
+.history-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; transition: border-color .15s, background .15s; }
+.history-item:hover { border-color: var(--border2); background: var(--surface2); }
+.history-disease { flex: 1; font-family: var(--mono); font-size: 12px; color: var(--text); }
+.history-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; }
+.history-conf { font-family: var(--mono); font-size: 11px; font-weight: 500; min-width: 42px; text-align: right; }
+.btn-print { display: inline-flex; align-items: center; gap: 7px; background: transparent; border: 1px solid var(--border2); color: var(--muted); font-family: var(--mono); font-size: 12px; padding: .6rem 1.1rem; border-radius: var(--r); cursor: pointer; transition: color .15s, border-color .15s; }
+.btn-print:hover { color: var(--text); border-color: var(--border2); }
+
+@media print {
+  body { background: #fff; color: #111; }
+  body::before, .input-section, .loader, header, .btn-details, .btn-print,
+  .history-section, .detail-drawer, .tab-bar, .unknown-banner,
+  .autocomplete-box, .chips-area { display: none !important; }
+  .summary-card { border: 1px solid #ccc; border-radius: 8px; padding: 1.5rem; box-shadow: none; }
+  .summary-disease { color: #111; font-size: 1.6rem; }
+  .conf-number { color: #111 !important; }
+  .summary-desc, .disclaimer { color: #444; }
+  .print-details { display: block !important; }
+  * { animation: none !important; transition: none !important; }
+}
+.print-details { display: none; }
+/* ── Walkthrough ── */
+.wt-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:100; }
+.wt-overlay.open { display:block; }
+.wt-panel { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(680px,95vw); max-height:80vh; background:var(--surface); border:1px solid var(--border2); border-radius:var(--r); z-index:101; flex-direction:column; overflow:hidden; }
+.wt-panel.open { display:flex; }
+.wt-header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+.wt-title { font-family:var(--mono); font-size:12px; color:var(--accent2); text-transform:uppercase; letter-spacing:.08em; }
+.wt-close { background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:0; }
+.wt-close:hover { color:var(--text); }
+.wt-cats { overflow-y:auto; padding:1rem 1.25rem; flex:1; display:flex; flex-direction:column; gap:1rem; }
+.wt-cat-block { background:var(--surface2); border:1px solid var(--border); border-radius:var(--r-sm); overflow:visible; }
+.wt-cat-head { display:flex; align-items:center; gap:8px; padding:.6rem 1rem; cursor:pointer; user-select:none; border-radius:var(--r-sm); }
+.wt-cat-head:hover { background:rgba(255,255,255,.03); }
+.wt-cat-icon { font-size:14px; }
+.wt-cat-name { font-family:var(--mono); font-size:11px; color:var(--text); text-transform:uppercase; letter-spacing:.07em; flex:1; }
+.wt-cat-toggle { font-size:11px; color:var(--muted); transition:transform .2s; }
+.wt-cat-toggle.open { transform:rotate(180deg); }
+.wt-symptoms { display:none; flex-wrap:wrap; gap:8px; padding:1rem; border-top:1px solid var(--border); max-height:180px; overflow-y:scroll; }
+.wt-symptoms.open { display:flex; }
+.wt-sym { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; padding:5px 12px; border-radius:999px; border:1px solid var(--border2); color:var(--muted); cursor:pointer; transition:background .12s,color .12s,border-color .12s; white-space:nowrap; flex-shrink:0; }
+.wt-sym:hover { border-color:var(--border2); color:var(--text); }
+.wt-sym.checked { background:rgba(0,200,255,.1); border-color:rgba(0,200,255,.35); color:var(--accent2); }
+.wt-footer { display:flex; align-items:center; justify-content:space-between; padding:.85rem 1.25rem; border-top:1px solid var(--border); flex-shrink:0; }
+.wt-sel-count { font-family:var(--mono); font-size:11px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div>
+      <div class="logo">Med<span>AI</span></div>
+      <div class="tagline" data-i18n="tagline">Personalised medicine recommendation system</div>
+    </div>
+    <div class="header-meta">
+      <div class="pill"><span class="dot"></span><span data-i18n="model_active">Model active</span></div>
+      <div class="pill">41 diseases · 132 symptoms</div>
+      <button onclick="toggleLang()" id="lang-btn" style="background:none;border:1px solid var(--border2);color:var(--muted);font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:999px;cursor:pointer;margin-top:2px">हि / EN</button>
+    </div>
+  </header>
+
+  <section class="input-section">
+    <label class="input-label" for="symptom-field" data-i18n="enter_symptoms">Enter your symptoms</label>
+    <div class="chips-area" id="chips-area"></div>
+    <div class="input-wrapper">
+      <textarea id="symptom-field" class="symptom-input"
+        data-i18n-placeholder="placeholder"
+        placeholder="e.g. high fever, headache, nausea, fatigue… (comma separated)"
+        rows="2"></textarea>
+      <div class="autocomplete-box" id="autocomplete"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-analyse" id="analyse-btn" onclick="analyse()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
+          <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10 10L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span data-i18n="analyse_btn">Analyse symptoms</span>
+      </button>
+      <button class="btn-clear" onclick="clearAll()" data-i18n="clear_btn">Clear</button>
+      <button class="btn-clear" onclick="openWalkthrough()" style="color:var(--accent2);border-color:rgba(0,200,255,0.3)" data-i18n="browse_btn">☰ Browse by category</button>
+      <span class="hint" id="sym-count"></span>
+    </div>
+  </section>
+
+  <!-- Walkthrough modal -->
+  <div class="wt-overlay" id="wt-overlay" onclick="closeWalkthrough()"></div>
+  <div class="wt-panel" id="wt-panel">
+    <div class="wt-header">
+      <span class="wt-title" data-i18n="wt_title">Browse symptoms by category</span>
+      <button class="wt-close" onclick="closeWalkthrough()">✕</button>
+    </div>
+    <div class="wt-cats" id="wt-cats"></div>
+    <div class="wt-footer">
+      <span id="wt-selected-count" class="wt-sel-count"></span>
+      <button class="btn-analyse" onclick="applyWalkthrough()" style="font-size:12px;padding:.55rem 1.2rem">Add selected symptoms</button>
+    </div>
+  </div>
+
+  <div class="loader" id="loader">
+    <div class="loader-bar"></div>
+    <span>Analysing symptoms…</span>
+  </div>
+
+  <div id="result"></div>
+
+  <div id="print-details-block" class="print-details"></div>
+
+  <div class="history-section" id="history-section" style="display:none">
+    <button class="history-toggle" id="history-toggle" onclick="toggleHistory()">
+      <i class="h-chevron">⌄</i> Recent predictions <span id="history-count"></span>
+    </button>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+</div>
+<script>
+const ALL_SYMPTOMS = {{ all_symptoms | tojson }};
+const field      = document.getElementById('symptom-field');
+const ac         = document.getElementById('autocomplete');
+const chipsEl    = document.getElementById('chips-area');
+const countEl    = document.getElementById('sym-count');
+const loader     = document.getElementById('loader');
+const resultEl   = document.getElementById('result');
+const analyseBtn = document.getElementById('analyse-btn');
+let addedChips = [], acIndex = -1, activeTab = {};
+
+/* ── Autocomplete ── */
+field.addEventListener('input', () => {
+  const cur = field.value.split(',').pop().trim().toLowerCase();
+  updateCount();
+  if (cur.length < 2) { ac.classList.remove('open'); return; }
+  const hits = ALL_SYMPTOMS.filter(s => s.toLowerCase().includes(cur)).slice(0, 8);
+  if (!hits.length) { ac.classList.remove('open'); return; }
+  ac.innerHTML = hits.map(s => {
+    const hi = s.replace(new RegExp(`(${cur})`, 'gi'), '<span class="ac-match">$1</span>');
+    return `<div class="ac-item" data-val="${s}" onmousedown="pickAC('${s.replace(/'/g,"\\'")}')">${hi}</div>`;
+  }).join('');
+  ac.classList.add('open'); acIndex = -1;
+});
+field.addEventListener('keydown', e => {
+  const items = ac.querySelectorAll('.ac-item');
+  if      (e.key==='ArrowDown')            { acIndex=Math.min(acIndex+1,items.length-1); hlAC(items); e.preventDefault(); }
+  else if (e.key==='ArrowUp')              { acIndex=Math.max(acIndex-1,0); hlAC(items); e.preventDefault(); }
+  else if (e.key==='Enter' && acIndex>=0)  { pickAC(items[acIndex].dataset.val); e.preventDefault(); }
+  else if (e.key==='Escape')               { ac.classList.remove('open'); }
+  else if (e.key==='Enter' && acIndex<0)   { e.preventDefault(); analyse(); }
+  else if (e.key===',')                    { scheduleChip(); }
+});
+field.addEventListener('blur', ()=>setTimeout(()=>ac.classList.remove('open'),150));
+function hlAC(items) { items.forEach((el,i)=>el.classList.toggle('focused',i===acIndex)); }
+function pickAC(val) {
+  const p=field.value.split(','); p[p.length-1]=''; field.value=p.join(',');
+  addChip(val); ac.classList.remove('open'); field.focus();
+}
+function scheduleChip() {
+  setTimeout(()=>{
+    const p=field.value.split(','), cand=p[p.length-2]?.trim();
+    if(cand){ addChip(cand); p.splice(p.length-2,1); field.value=p.join(','); }
+  },10);
+}
+function addChip(val) {
+  val=val.trim().toLowerCase();
+  if(!val||addedChips.includes(val)) return;
+  addedChips.push(val);
+  const chip=document.createElement('div');
+  chip.className='chip'; chip.dataset.val=val;
+  chip.innerHTML=`${val} <button class="chip-remove" onclick="removeChip('${val.replace(/'/g,"\\'")}')">×</button>`;
+  chipsEl.appendChild(chip); updateCount();
+}
+function removeChip(val) {
+  addedChips=addedChips.filter(c=>c!==val);
+  chipsEl.querySelector(`[data-val="${val}"]`)?.remove(); updateCount();
+}
+function updateCount() {
+  const n=addedChips.length+field.value.split(',').filter(s=>s.trim().length>1).length;
+  countEl.textContent=n?n+' symptom'+(n>1?'s':''):'';
+}
+function clearAll() {
+  field.value=''; addedChips=[]; chipsEl.innerHTML=''; resultEl.innerHTML=''; updateCount();
+}
+
+/* ── Analyse ── */
+async function analyse() {
+  const all=[...addedChips,...field.value.split(',').map(s=>s.trim()).filter(Boolean)];
+  if(!all.length){ field.focus(); return; }
+  loader.classList.add('active'); resultEl.innerHTML=''; analyseBtn.disabled=true;
+  try {
+    const res=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symptoms:all.join(', ')})});
+    const data=await res.json();
+    loader.classList.remove('active'); analyseBtn.disabled=false;
+    renderResult(data);
+    resultEl.scrollIntoView({behavior:'smooth',block:'start'});
+  } catch(e) {
+    loader.classList.remove('active'); analyseBtn.disabled=false;
+    resultEl.innerHTML=`<div class="error-box">⚠ Connection error. Make sure the server is running.</div>`;
+  }
+}
+
+/* ── Fuzzy suggestion helper ── */
+function fuzzyMatch(token) {
+  const t = token.toLowerCase();
+  let best = null, bestScore = 0;
+  for (const s of ALL_SYMPTOMS) {
+    const score = strSimilarity(t, s.toLowerCase());
+    if (score > bestScore) { bestScore = score; best = s; }
+  }
+  return bestScore >= 0.5 ? best : null;
+}
+function strSimilarity(a, b) {
+  if (a === b) return 1;
+  const longer = a.length > b.length ? a : b;
+  const shorter = a.length > b.length ? b : a;
+  if (!longer.length) return 1;
+  return (longer.length - editDistance(longer, shorter)) / longer.length;
+}
+function editDistance(a, b) {
+  const dp = Array.from({length: a.length + 1}, (_, i) => [i]);
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+function unknownBanner(unknowns) {
+  if (!unknowns?.length) return '';
+  const parts = unknowns.map(u => {
+    const suggestion = fuzzyMatch(u);
+    const sug = suggestion
+      ? ` <span style="color:var(--muted)">— did you mean</span> <span class="did-you-mean" onclick="acceptSuggestion('${u}','${suggestion.replace(/'/g,"\\'")}')">✦ ${suggestion}</span>?`
+      : '';
+    return `<span style="color:var(--danger)">${u}</span>${sug}`;
+  });
+  return `<div class="unknown-banner">Unrecognised: ${parts.join(' · ')}</div>`;
+}
+
+function acceptSuggestion(original, suggestion) {
+  const orig = original.toLowerCase().trim();
+  // remove from chips if it somehow got added
+  addedChips = addedChips.filter(c => c.toLowerCase().trim() !== orig);
+  chipsEl.querySelectorAll('.chip').forEach(el => {
+    if (el.dataset.val.toLowerCase().trim() === orig) el.remove();
+  });
+  // remove from text field (all occurrences)
+  field.value = field.value.split(',')
+    .filter(t => t.trim().toLowerCase() !== orig)
+    .join(', ').trim();
+  // add corrected suggestion and re-analyse
+  addChip(suggestion);
+  updateCount();
+  analyse();
+}
+
+/* ── Render ── */
+function renderResult(d) {
+  if(d.error){ resultEl.innerHTML=`<div class="error-box">⚠ ${d.error}</div>`; return; }
+  d.mode==='low' ? renderLow(d) : renderHigh(d);
+}
+function cc(c){ return c>=80?'var(--accent)':c>=50?'var(--warn)':'var(--danger)'; }
+
+/* HIGH */
+function sevBadge(score, label) {
+  if(!score && score!==0) return '';
+  const cls = 'sev-'+label.toLowerCase();
+  return `<span class="sev-badge ${cls}">⚡ Severity ${score} · ${label}</span>`;
+}
+
+function renderHigh(d) {
+  const did='drawer-main', c=cc(d.confidence);
+  let h=`<div class="summary-card">
+    <div class="summary-top">
+      <div>
+        <div class="summary-disease"><small>Predicted condition</small>${d.disease}</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0">
+          <div class="model-badge">${d.model_used} · ${d.n_symptoms} symptom${d.n_symptoms!==1?'s':''}</div>
+          ${sevBadge(d.severity_score, d.severity_label)}
+        </div>
+      </div>
+      <div class="conf-block">
+        <div class="conf-number" style="color:${c}">${d.confidence}%</div>
+        <div class="conf-label">${d.conf_label} confidence</div>
+        <div class="conf-bar-wrap"><div class="conf-bar" id="cbar" style="width:0;background:${c}"></div></div>
+      </div>
+    </div>`;
+
+  if(d.description) h+=`<p class="summary-desc">${d.description}</p>`;
+
+  if(d.contributions?.length){
+    const mx=d.contributions[0].score||1;
+    h+=`<div class="contribs">`;
+    d.contributions.forEach(x=>{
+      const pct=mx>0?(x.score/mx*100).toFixed(0):0;
+      h+=`<div class="contrib-row"><span class="contrib-name">${x.symptom}</span><div class="contrib-track"><div class="contrib-fill" style="width:${pct}%"></div></div></div>`;
+    });
+    h+=`</div>`;
+  }
+
+  if(d.alternatives?.length>1){
+    h+=`<div style="margin-bottom:1.25rem"><div class="summary-section-label" style="margin-bottom:.6rem">Other possibilities</div>`;
+    d.alternatives.slice(1).forEach(a=>{
+      h+=`<div class="alts-row"><span class="alts-name">${a.disease}</span><div class="alts-bar-wrap"><div class="alts-bar" style="width:${a.prob}%"></div></div><span class="alts-prob">${a.prob}%</span></div>`;
+    });
+    h+=`</div>`;
+  }
+
+  // store result data for print
+  window._lastResult = d;
+
+  h+=`<div style="margin-top:.25rem;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn-details" id="btn-${did}" onclick="toggleDrawer('${did}','${esc(d.disease)}')">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.5h5M6.5 4v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      View full details
+      <i class="chevron">⌄</i>
+    </button>
+    <button class="btn-print" onclick="printReport()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save PDF
+    </button>
+  </div></div>
+  <div class="detail-drawer" id="${did}"></div>`;
+
+  if(d.unknown?.length) h+=unknownBanner(d.unknown);
+  h+=disc();
+  resultEl.innerHTML=h;
+  requestAnimationFrame(()=>{ const bar=document.getElementById('cbar'); if(bar) setTimeout(()=>bar.style.width=d.confidence+'%',50); });
+}
+
+/* LOW */
+function renderLow(d) {
+  let h=`<div class="low-mode-head"><span style="font-size:18px">⚠</span>
+    <p>Low confidence (${d.confidence}%) — enter more symptoms for a reliable prediction.</p></div>
+  <div class="summary-card" style="animation-delay:.1s">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div class="summary-section-label">Possible conditions — click any to see full details</div>
+      ${sevBadge(d.severity_score, d.severity_label)}
+    </div>`;
+
+  (d.alternatives||[]).forEach((a,i)=>{
+    const did=`low-d-${i}`;
+    h+=`<div class="low-alt-row" id="row-${did}" onclick="toggleLowDrawer('${did}','${esc(a.disease)}')">
+      <span class="low-alt-name">${a.disease}</span>
+      <div class="low-alt-bar-wrap"><div class="low-alt-bar" style="width:${Math.min(a.prob,100)}%"></div></div>
+      <span class="low-alt-prob">${a.prob}%</span>
+      <span class="low-details-hint">details →</span>
+    </div>
+    <div class="low-drawer" id="${did}"></div>`;
+  });
+
+  h+=`</div>`;
+  if(d.unknown?.length) h+=unknownBanner(d.unknown);
+  h+=disc();
+  resultEl.innerHTML=h;
+}
+
+/* ── Drawer toggle (high mode) ── */
+async function toggleDrawer(did, disease) {
+  const drawer=document.getElementById(did), btn=document.getElementById('btn-'+did);
+  if(!drawer) return;
+  if(drawer.classList.contains('open')){ drawer.classList.remove('open'); btn?.classList.remove('open'); return; }
+  btn?.classList.add('open');
+  if(!drawer.dataset.loaded){
+    drawer.innerHTML=`<div class="details-loading"><div class="spin"></div>Loading details…</div>`;
+    drawer.classList.add('open');
+    drawer.innerHTML=buildDrawer(disease, await fetchDetails(disease), did);
+    drawer.dataset.loaded='1';
+    setTab(did, 'precautions');
+  } else { drawer.classList.add('open'); }
+}
+
+/* ── Drawer toggle (low mode) ── */
+async function toggleLowDrawer(did, disease) {
+  const drawer=document.getElementById(did), row=document.getElementById('row-'+did);
+  if(!drawer) return;
+  if(drawer.classList.contains('open')){
+    drawer.classList.remove('open'); row?.classList.remove('active-row'); return;
+  }
+  row?.classList.add('active-row');
+  if(!drawer.dataset.loaded){
+    drawer.innerHTML=`<div class="details-loading"><div class="spin"></div>Loading details…</div>`;
+    drawer.classList.add('open');
+    drawer.innerHTML=buildDrawer(disease, await fetchDetails(disease), did);
+    drawer.dataset.loaded='1';
+    setTab(did,'precautions');
+  } else { drawer.classList.add('open'); }
+}
+
+/* ── Fetch from /details/<disease> ── */
+async function fetchDetails(disease) {
+  try { const r=await fetch('/details/'+encodeURIComponent(disease)); return await r.json(); }
+  catch(e){ return {error:true}; }
+}
+
+/* ── Build drawer HTML ── */
+function buildDrawer(disease, d, did) {
+  if(d.error) return `<div class="details-loading" style="color:var(--danger)">⚠ Could not load details.</div>`;
+
+  const tabs=[
+    {id:'precautions',label:'Precautions',icon:'⚠'},
+    {id:'medications',label:'Medications',icon:'💊'},
+    {id:'workout',    label:'Exercise',   icon:'🏃'},
+    {id:'diet',       label:'Diet',       icon:'🥗'},
+    {id:'doctors',    label:'Doctors',    icon:'🩺'},
+  ];
+
+  let h=`<div class="tab-bar">`;
+  tabs.forEach(t=>{ h+=`<button class="tab-btn" id="tab-${did}-${t.id}" onclick="setTab('${did}','${t.id}')"><span class="tab-icon">${t.icon}</span>${t.label}</button>`; });
+  h+=`</div><div class="tab-panels">`;
+
+  /* Precautions */
+  h+=`<div class="tab-panel" id="panel-${did}-precautions"><div class="detail-section-title">Precautions</div>`;
+  h+= d.precautions?.length
+    ? `<ul class="item-list">`+d.precautions.map(p=>`<li>${p}</li>`).join('')+`</ul>`
+    : `<p class="empty">No precautions available.</p>`;
+  h+=`</div>`;
+
+  /* Medications */
+  h+=`<div class="tab-panel" id="panel-${did}-medications"><div class="detail-section-title">Medications</div>
+    <p style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:1rem">For informational use only — always consult a doctor before taking any medication.</p>`;
+  h+= d.medications?.length
+    ? `<ul class="item-list med-list">`+d.medications.map(m=>`<li>${m}</li>`).join('')+`</ul>`
+    : `<p class="empty">No medication data available.</p>`;
+  h+=`</div>`;
+
+  /* Exercise */
+  h+=`<div class="tab-panel" id="panel-${did}-workout"><div class="detail-section-title">Recommended exercise &amp; activity</div>`;
+  h+= d.workouts?.length
+    ? `<div class="workout-grid">`+d.workouts.map(w=>`<div class="workout-card">${w}</div>`).join('')+`</div>`
+    : `<p class="empty">No workout data available.</p>`;
+  h+=`</div>`;
+
+  /* Diet */
+  h+=`<div class="tab-panel" id="panel-${did}-diet"><div class="detail-section-title">Diet recommendations</div>`;
+  h+= d.diets?.length
+    ? `<div class="diet-grid">`+d.diets.map(x=>`<div class="diet-card">${x}</div>`).join('')+`</div>`
+    : `<p class="empty">No diet data available.</p>`;
+  h+=`</div>`;
+
+  /* Doctors */
+  h+=`<div class="tab-panel" id="panel-${did}-doctors"><div class="detail-section-title">Recommended specialist</div>`;
+  if(d.category && d.category!=='Not available') h+=`<div class="doc-category">Specialist: ${d.category}</div>`;
+  const hasDel=d.doctors_delhi?.length, hasUK=d.doctors_uk?.length;
+  if(!hasDel&&!hasUK) h+=`<div class="no-doctors">Doctor recommendations are not available for this condition in the dataset. Please consult a general physician for specialist referrals.</div>`;
+  if(hasDel){
+    h+=`<div class="doc-section"><div class="doc-section-label">Delhi</div><div class="doc-grid">`;
+    d.doctors_delhi.forEach(doc=>{ const i=doc.trim().split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase(); h+=`<div class="doc-card"><div class="doc-avatar">${i}</div><span class="doc-name">${doc.trim()}</span></div>`; });
+    h+=`</div></div>`;
+  }
+  if(hasUK){
+    h+=`<div class="doc-section"><div class="doc-section-label">Uttarakhand</div><div class="doc-grid">`;
+    d.doctors_uk.forEach(doc=>{ const i=doc.trim().split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase(); h+=`<div class="doc-card"><div class="doc-avatar">${i}</div><span class="doc-name">${doc.trim()}</span></div>`; });
+    h+=`</div></div>`;
+  }
+  h+=`</div>`;
+
+  h+=`</div>`; /* /tab-panels */
+  return h;
+}
+
+/* ── Tab switching ── */
+function setTab(did, tabId) {
+  activeTab[did]=tabId;
+  document.querySelectorAll(`[id^="panel-${did}-"]`).forEach(p=>p.classList.toggle('active', p.id===`panel-${did}-${tabId}`));
+  document.querySelectorAll(`[id^="tab-${did}-"]`).forEach(t=>t.classList.toggle('active',   t.id===`tab-${did}-${tabId}`));
+}
+
+function esc(s){ return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function disc(){ return `<div class="disclaimer">⚠ Disclaimer — This is an AI-based tool for informational purposes only. It does not constitute medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional for any health concerns.</div>`; }
+
+/* ── Print ── */
+async function printReport() {
+  const d = window._lastResult;
+  if (!d) return;
+  const details = await fetchDetails(d.disease);
+  const el = document.getElementById('print-details-block');
+  const fmt = arr => arr?.length ? arr.map(x=>`<li>${x}</li>`).join('') : '<li>N/A</li>';
+  el.innerHTML = `
+    <h2 style="font-size:1.4rem;margin:1rem 0 .5rem">${d.disease}</h2>
+    <p style="margin-bottom:1rem;color:#444">${d.description||''}</p>
+    <h3>Precautions</h3><ul>${fmt(details.precautions)}</ul>
+    <h3>Medications</h3><ul>${fmt(details.medications)}</ul>
+    <h3>Diet</h3><ul>${fmt(details.diets)}</ul>
+    <h3>Exercise</h3><ul>${fmt(details.workouts)}</ul>
+    <p style="margin-top:1rem;font-size:11px;color:#888">Confidence: ${d.confidence}% · ${d.conf_label} · Severity: ${d.severity_score} (${d.severity_label})</p>
+    <p style="font-size:10px;color:#aaa;margin-top:.5rem">AI-generated report — not a substitute for professional medical advice.</p>`;
+  window.print();
+}
+
+/* ── History ── */
+const HISTORY_KEY = 'medai_history';
+const MAX_HISTORY = 5;
+
+function saveHistory(data) {
+  const label = data.mode === 'high' ? data.disease : (data.alternatives?.[0]?.disease || 'Unknown');
+  const entry = {
+    label,
+    confidence: data.confidence,
+    conf_label: data.conf_label,
+    severity_score: data.severity_score,
+    severity_label: data.severity_label,
+    mode: data.mode,
+    data,
+    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+  };
+  const hist = getHistory();
+  hist.unshift(entry);
+  sessionStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, MAX_HISTORY)));
+  renderHistoryPanel();
+}
+
+function getHistory() {
+  try { return JSON.parse(sessionStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+
+function renderHistoryPanel() {
+  const hist = getHistory();
+  const section = document.getElementById('history-section');
+  const list    = document.getElementById('history-list');
+  const countEl = document.getElementById('history-count');
+  if (!hist.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  countEl.textContent = `(${hist.length})`;
+  list.innerHTML = hist.map((e, i) => {
+    const c = cc(e.confidence);
+    return `<div class="history-item" id="hist-${i}">
+      <span class="history-disease" onclick="restoreHistory(${i})" style="cursor:pointer">${e.label}</span>
+      <span class="history-meta">${e.time} · ${e.severity_label || ''}</span>
+      <span class="history-conf" style="color:${c}">${e.confidence}%</span>
+      <button onclick="deleteHistory(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 0 0 8px;line-height:1" title="Remove">×</button>
+    </div>`;
+  }).join('');
+}
+
+function restoreHistory(i) {
+  const entry = getHistory()[i];
+  if (!entry) return;
+  renderResult(entry.data);
+  resultEl.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteHistory(i) {
+  const hist = getHistory();
+  hist.splice(i, 1);
+  sessionStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+  renderHistoryPanel();
+}
+
+function toggleHistory() {
+  const btn  = document.getElementById('history-toggle');
+  const list = document.getElementById('history-list');
+  btn.classList.toggle('open');
+  list.classList.toggle('open');
+}
+
+// Patch analyse() to save after render
+const _origRenderResult = renderResult;
+renderResult = function(d) {
+  _origRenderResult(d);
+  if (!d.error) saveHistory(d);
+};
+
+// Restore history panel on load
+renderHistoryPanel();
+/* ── Walkthrough ── */
+const WT_CATEGORIES = {
+  '🌡 Fever & General': ['high fever','mild fever','fatigue','malaise','chills','shivering','sweating','dehydration','lethargy','weight loss','weight gain'],
+  '🫁 Respiratory':     ['cough','breathlessness','phlegm','mucoid sputum','rusty sputum','blood in sputum','throat irritation','runny nose','congestion','sinus pressure'],
+  '🤢 Digestive':       ['vomiting','nausea','indigestion','stomach pain','abdominal pain','belly pain','diarrhoea','constipation','loss of appetite','passage of gases','stomach bleeding','distention of abdomen'],
+  '🧠 Neurological':    ['headache','dizziness','loss of balance','unsteadiness','spinning movements','altered sensorium','slurred speech','weakness of one body side','visual disturbances','blurred and distorted vision','lack of concentration','coma'],
+  '🦴 Musculoskeletal': ['joint pain','muscle pain','muscle weakness','muscle wasting','knee pain','hip joint pain','neck pain','back pain','stiff neck','swelling joints','movement stiffness','painful walking','cramps'],
+  '🫀 Cardiovascular':  ['chest pain','fast heart rate','palpitations','prominent veins on calf','swollen blood vessels','swollen legs','swollen extremeties','puffy face and eyes'],
+  '🩺 Skin':            ['itching','skin rash','nodal skin eruptions','dischromic patches','skin peeling','blackheads','pus filled pimples','blister','red sore around nose','yellow crust ooze','silver like dusting','bruising','red spots over body'],
+  '👁 Eyes & ENT':      ['redness of eyes','watering from eyes','yellowish skin','yellowing of eyes','pain behind the eyes','loss of smell','sunken eyes'],
+  '🚽 Urinary':         ['burning micturition','spotting urination','continuous feel of urine','bladder discomfort','foul smell ofurine','yellow urine','dark urine','polyuria'],
+  '🧬 Metabolic':       ['excessive hunger','increased appetite','irregular sugar level','obesity','anxiety','mood swings','depression','irritability','cold hands and feets'],
+};
+
+let wtSelected = new Set();
+
+function openWalkthrough() {
+  wtSelected = new Set(addedChips);
+  renderWTPanel();
+  document.getElementById('wt-overlay').classList.add('open');
+  document.getElementById('wt-panel').classList.add('open');
+}
+function closeWalkthrough() {
+  document.getElementById('wt-overlay').classList.remove('open');
+  document.getElementById('wt-panel').classList.remove('open');
+}
+function renderWTPanel() {
+  const container = document.getElementById('wt-cats');
+  container.innerHTML = Object.entries(WT_CATEGORIES).map(([cat, syms], ci) => {
+    const items = syms.map(s => {
+      const checked = wtSelected.has(s) ? 'checked' : '';
+      return `<span class="wt-sym ${checked}" onclick="toggleWTSym(this,'${s.replace(/'/g,"\\'")}')">
+        ${wtSelected.has(s) ? '✓ ' : ''}${s}
+      </span>`;
+    }).join('');
+    return `<div class="wt-cat-block">
+      <div class="wt-cat-head" onclick="toggleWTCat(${ci})">
+        <span class="wt-cat-icon">${cat.split(' ')[0]}</span>
+        <span class="wt-cat-name">${cat.split(' ').slice(1).join(' ')}</span>
+        <span class="wt-cat-toggle" id="wt-tog-${ci}">⌄</span>
+      </div>
+      <div class="wt-symptoms" id="wt-syms-${ci}">${items}</div>
+    </div>`;
+  }).join('');
+  updateWTCount();
+}
+function toggleWTCat(ci) {
+  document.getElementById(`wt-syms-${ci}`).classList.toggle('open');
+  document.getElementById(`wt-tog-${ci}`).classList.toggle('open');
+}
+function toggleWTSym(el, sym) {
+  if (wtSelected.has(sym)) {
+    wtSelected.delete(sym);
+    el.classList.remove('checked');
+    el.textContent = sym;
+  } else {
+    wtSelected.add(sym);
+    el.classList.add('checked');
+    el.textContent = '✓ ' + sym;
+  }
+  updateWTCount();
+}
+function updateWTCount() {
+  const n = wtSelected.size;
+  document.getElementById('wt-selected-count').textContent = n ? `${n} symptom${n>1?'s':''} selected` : '';
+}
+function applyWalkthrough() {
+  wtSelected.forEach(s => addChip(s));
+  updateCount();
+  closeWalkthrough();
+}
+/* ── i18n ── */
+const I18N = {
+  en: {
+    tagline:        'Personalised medicine recommendation system',
+    model_active:   'Model active',
+    enter_symptoms: 'Enter your symptoms',
+    placeholder:    'e.g. high fever, headache, nausea, fatigue… (comma separated)',
+    analyse_btn:    'Analyse symptoms',
+    clear_btn:      'Clear',
+    browse_btn:     '☰ Browse by category',
+    wt_title:       'Browse symptoms by category',
+  },
+  hi: {
+    tagline:        'व्यक्तिगत दवा अनुशंसा प्रणाली',
+    model_active:   'मॉडल सक्रिय',
+    enter_symptoms: 'अपने लक्षण दर्ज करें',
+    placeholder:    'जैसे: तेज बुखार, सिरदर्द, मतली, थकान… (अल्पविराम से अलग करें)',
+    analyse_btn:    'लक्षण विश्लेषण करें',
+    clear_btn:      'साफ करें',
+    browse_btn:     '☰ श्रेणी से चुनें',
+    wt_title:       'श्रेणी के अनुसार लक्षण चुनें',
+  },
+};
+let currentLang = 'en';
+function applyLang(lang) {
+  const strings = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (strings[key]) el.textContent = strings[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (strings[key]) el.placeholder = strings[key];
+  });
+}
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'hi' : 'en';
+  applyLang(currentLang);
+}
+</script>
+</body>
+</html>
