@@ -27,6 +27,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     accuracy_score,
@@ -149,18 +150,23 @@ def train_models(X_train, y_train, X_test, y_test):
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
     models = {
-        "Random Forest": RandomForestClassifier(
-            n_estimators=200,
-            max_features="sqrt",
-            class_weight="balanced",
-            random_state=42,
-            n_jobs=-1,
+        "Random Forest": CalibratedClassifierCV(
+            RandomForestClassifier(
+                n_estimators=200,
+                max_features="sqrt",
+                class_weight="balanced",
+                random_state=42,
+                n_jobs=-1,
+            ),
+            method="isotonic", cv=3,
         ),
-        "SVM (linear)": SVC(
-            kernel="linear",
-            probability=True,
-            class_weight="balanced",
-            random_state=42,
+        "SVM (linear)": CalibratedClassifierCV(
+            SVC(
+                kernel="linear",
+                class_weight="balanced",
+                random_state=42,
+            ),
+            method="sigmoid", cv=3,
         ),
     }
 
@@ -292,7 +298,15 @@ def save_pipeline(
 ):
     banner("STEP 5 · Saving pipeline")
 
-    importances = dict(zip(all_symptoms, rf_model.feature_importances_))
+    # CalibratedClassifierCV wraps the base estimator — average importances across folds
+    try:
+        raw_imp = np.mean([
+            est.estimator.feature_importances_
+            for est in rf_model.calibrated_classifiers_
+        ], axis=0)
+    except AttributeError:
+        raw_imp = rf_model.feature_importances_
+    importances = dict(zip(all_symptoms, raw_imp))
 
     pipeline = {
         "rf_model":       rf_model,
@@ -315,8 +329,22 @@ def save_pipeline(
     with open(output_path, "wb") as f:
         pickle.dump(pipeline, f)
 
+    # ── Versioned copy ──────────────────────────────────────
+    ts = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+    versioned_path = Path(output_path).with_name(f"medical_model_{ts}.pkl")
+    with open(versioned_path, "wb") as f:
+        pickle.dump(pipeline, f)
+
+    # Keep only the 3 most recent versioned models
+    model_dir = Path(output_path).parent
+    old_versions = sorted(model_dir.glob("medical_model_????????_??????.pkl"))
+    for old in old_versions[:-3]:
+        old.unlink()
+        warn(f"Removed old version  : {old.name}")
+
     size_kb = Path(output_path).stat().st_size / 1024
     success(f"Pipeline saved to  : {output_path}  ({size_kb:.0f} KB)")
+    success(f"Versioned copy     : {versioned_path.name}")
     info(f"RF  CV accuracy    : {results['Random Forest']['cv_mean']:.4f}")
     info(f"SVM CV accuracy    : {results['SVM (linear)']['cv_mean']:.4f}")
     info(f"RF/SVM threshold   : {threshold} symptoms")
