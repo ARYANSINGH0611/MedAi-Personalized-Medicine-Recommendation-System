@@ -272,6 +272,28 @@ header {
 .wt-sym.checked { background:rgba(0,200,255,.1); border-color:rgba(0,200,255,.35); color:var(--accent2); }
 .wt-footer { display:flex; align-items:center; justify-content:space-between; padding:.85rem 1.25rem; border-top:1px solid var(--border); flex-shrink:0; }
 .wt-sel-count { font-family:var(--mono); font-size:11px; color:var(--muted); }
+/* ── Chatbot ── */
+.chat-fab { position:fixed; bottom:2rem; right:2rem; width:52px; height:52px; border-radius:50%; background:var(--accent); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(79,255,176,0.35); z-index:200; transition:transform .2s, box-shadow .2s; }
+.chat-fab:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(79,255,176,0.5); }
+.chat-fab svg { color:#0b0e13; }
+.chat-panel { position:fixed; bottom:5.5rem; right:2rem; width:340px; max-height:520px; background:var(--surface); border:1px solid var(--border2); border-radius:var(--r); z-index:200; display:none; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,.4); overflow:hidden; }
+.chat-panel.open { display:flex; }
+.chat-header { display:flex; align-items:center; justify-content:space-between; padding:.85rem 1rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+.chat-header-title { font-family:var(--mono); font-size:12px; color:var(--accent); letter-spacing:.06em; }
+.chat-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:0; }
+.chat-close:hover { color:var(--text); }
+.chat-messages { flex:1; overflow-y:auto; padding:.75rem 1rem; display:flex; flex-direction:column; gap:.6rem; }
+.chat-msg { max-width:85%; padding:.6rem .85rem; border-radius:10px; font-family:var(--mono); font-size:12px; line-height:1.55; animation:fadeUp .2s ease; }
+.chat-msg.bot { background:var(--surface2); border:1px solid var(--border); color:var(--text); align-self:flex-start; border-bottom-left-radius:3px; }
+.chat-msg.user { background:rgba(79,255,176,0.1); border:1px solid rgba(79,255,176,0.2); color:var(--accent); align-self:flex-end; border-bottom-right-radius:3px; }
+.chat-chips { display:flex; flex-wrap:wrap; gap:5px; padding:.5rem 1rem; border-top:1px solid var(--border); flex-shrink:0; }
+.chat-chip-btn { font-family:var(--mono); font-size:10px; padding:3px 10px; border-radius:999px; border:1px solid var(--border2); background:none; color:var(--muted); cursor:pointer; transition:background .12s,color .12s; }
+.chat-chip-btn:hover { background:rgba(79,255,176,0.08); color:var(--accent); border-color:rgba(79,255,176,0.3); }
+.chat-input-row { display:flex; gap:6px; padding:.75rem 1rem; border-top:1px solid var(--border); flex-shrink:0; }
+.chat-input { flex:1; background:var(--surface2); border:1px solid var(--border2); border-radius:var(--r-sm); padding:.5rem .75rem; color:var(--text); font-family:var(--mono); font-size:12px; outline:none; }
+.chat-input:focus { border-color:rgba(79,255,176,0.4); }
+.chat-send { background:var(--accent); border:none; border-radius:var(--r-sm); padding:.5rem .75rem; cursor:pointer; color:#0b0e13; font-size:13px; flex-shrink:0; }
+.chat-send:hover { opacity:.85; }
 </style>
 </head>
 <body>
@@ -905,7 +927,184 @@ function toggleLang() {
   currentLang = currentLang === 'en' ? 'hi' : 'en';
   applyLang(currentLang);
 }
+/* ── Chatbot ── */
+const PHRASE_MAP = {
+  // Fever
+  'high fever|very high temperature|burning up|fever': 'high fever',
+  'mild fever|slight fever|low grade fever|little fever': 'mild fever',
+  'chills|shivering|shaking with cold|feeling cold': 'chills',
+  'sweating|sweats|night sweats|drenched in sweat': 'sweating',
+  // Head
+  'headache|head pain|head is pounding|head hurts|migraine': 'headache',
+  'dizziness|dizzy|spinning|feel like spinning|room spinning|vertigo': 'dizziness',
+  'loss of balance|can\'t balance|unsteady|losing balance': 'loss of balance',
+  // Respiratory
+  'cough|coughing|dry cough|wet cough': 'cough',
+  'breathless|can\'t breathe|short of breath|difficulty breathing|breathing difficulty|hard to breathe': 'breathlessness',
+  'runny nose|nose running|nasal discharge': 'runny nose',
+  'sneezing|sneezes': 'continuous sneezing',
+  'sore throat|throat pain|throat irritation|throat hurts': 'throat irritation',
+  'chest pain|chest hurts|pain in chest|chest tightness': 'chest pain',
+  'phlegm|mucus|sputum|coughing up mucus': 'phlegm',
+  // Digestive
+  'nausea|feel like vomiting|want to vomit|queasy|sick to stomach': 'nausea',
+  'vomiting|throwing up|vomited|puking': 'vomiting',
+  'diarrhoea|diarrhea|loose stools|watery stools|loose motions': 'diarrhoea',
+  'stomach pain|stomach ache|tummy pain|abdominal pain|belly pain|stomach hurts': 'stomach pain',
+  'indigestion|acidity|acid reflux|heartburn|burning in chest': 'acidity',
+  'constipation|can\'t pass stool|hard stools': 'constipation',
+  'loss of appetite|not hungry|don\'t feel like eating|no appetite': 'loss of appetite',
+  'bloating|bloated|stomach bloated': 'distention of abdomen',
+  // Skin
+  'itching|itchy|itchy skin|skin itches': 'itching',
+  'skin rash|rash|rashes|red rash': 'skin rash',
+  'yellow skin|skin turned yellow|yellowish skin': 'yellowish skin',
+  'yellow eyes|eyes turned yellow|yellowing of eyes': 'yellowing of eyes',
+  'pimples|acne|breakout|spots on face': 'pus filled pimples',
+  'blisters|blister|fluid filled bumps': 'blister',
+  // Fatigue & General
+  'fatigue|tired|exhausted|very tired|no energy|weakness|weak': 'fatigue',
+  'lethargy|lethargic|sluggish': 'lethargy',
+  'weight loss|losing weight|lost weight': 'weight loss',
+  'weight gain|gaining weight|gained weight': 'weight gain',
+  // Joints & Muscles
+  'joint pain|joints hurt|painful joints|aching joints': 'joint pain',
+  'muscle pain|muscles ache|body ache|body pain|aching muscles': 'muscle pain',
+  'neck pain|neck hurts|stiff neck|neck stiffness': 'neck pain',
+  'back pain|backache|back hurts': 'back pain',
+  'knee pain|knee hurts': 'knee pain',
+  // Urinary
+  'burning urination|burning when peeing|pain when urinating|burning pee': 'burning micturition',
+  'frequent urination|urinating frequently|peeing a lot|urge to urinate': 'continuous feel of urine',
+  'dark urine|urine is dark|brown urine': 'dark urine',
+  // Eyes
+  'red eyes|eyes are red|redness in eyes': 'redness of eyes',
+  'watery eyes|eyes watering|tears': 'watering from eyes',
+  'blurred vision|blurry vision|can\'t see clearly': 'blurred and distorted vision',
+  // Other
+  'anxiety|anxious|worried|nervous': 'anxiety',
+  'depression|depressed|feeling low|very sad': 'depression',
+  'fast heartbeat|heart racing|palpitations|heart beating fast': 'fast heart rate',
+  'swollen legs|legs swollen|leg swelling': 'swollen legs',
+  'excessive thirst|very thirsty|drinking a lot of water': 'excessive hunger',
+  'excessive hunger|very hungry|always hungry': 'excessive hunger',
+};
+
+let chatOpen = false, chatExtracted = [];
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const panel = document.getElementById('chat-panel');
+  panel.classList.toggle('open', chatOpen);
+  if (chatOpen && document.getElementById('chat-messages').children.length === 0) {
+    botMsg('Hi! I\'m here to help. Tell me how you\'re feeling in your own words — for example: "I have a bad headache and feel like throwing up."');
+  }
+  if (chatOpen) setTimeout(() => document.getElementById('chat-input').focus(), 100);
+}
+
+function botMsg(text) {
+  const el = document.createElement('div');
+  el.className = 'chat-msg bot';
+  el.textContent = text;
+  const msgs = document.getElementById('chat-messages');
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function userMsg(text) {
+  const el = document.createElement('div');
+  el.className = 'chat-msg user';
+  el.textContent = text;
+  const msgs = document.getElementById('chat-messages');
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function extractSymptoms(text) {
+  const lower = text.toLowerCase();
+  const found = new Set();
+  for (const [phrases, symptom] of Object.entries(PHRASE_MAP)) {
+    for (const phrase of phrases.split('|')) {
+      if (lower.includes(phrase.trim())) { found.add(symptom); break; }
+    }
+  }
+  // Also try fuzzy match against ALL_SYMPTOMS for any unmatched words
+  const words = lower.split(/[\s,\.]+/).filter(w => w.length > 3);
+  for (const word of words) {
+    const match = fuzzyMatch(word);
+    if (match) found.add(match);
+  }
+  return [...found];
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  userMsg(text);
+
+  const found = extractSymptoms(text);
+  const newSyms = found.filter(s => !chatExtracted.includes(s) && !addedChips.includes(s));
+  chatExtracted.push(...newSyms);
+
+  if (newSyms.length === 0) {
+    botMsg('I couldn\'t identify specific symptoms from that. Could you describe more — for example, do you have fever, pain, or nausea?');
+    return;
+  }
+
+  // Show found symptoms as clickable chips
+  const chipsEl = document.getElementById('chat-chips');
+  chipsEl.innerHTML = '';
+  chatExtracted.forEach(sym => {
+    const btn = document.createElement('button');
+    btn.className = 'chat-chip-btn' + (addedChips.includes(sym) ? ' active' : '');
+    btn.textContent = (addedChips.includes(sym) ? '✓ ' : '') + sym;
+    btn.onclick = () => {
+      addChip(sym);
+      btn.textContent = '✓ ' + sym;
+      btn.style.color = 'var(--accent)';
+      btn.style.borderColor = 'rgba(79,255,176,0.4)';
+    };
+    chipsEl.appendChild(btn);
+  });
+
+  botMsg(`I found ${newSyms.length} symptom${newSyms.length > 1 ? 's' : ''}: ${newSyms.join(', ')}. Tap any to add it, or tell me more symptoms.`);
+
+  // After 2+ symptoms, offer to analyse
+  if (chatExtracted.length >= 2) {
+    setTimeout(() => {
+      const btn = document.createElement('button');
+      btn.className = 'chat-chip-btn';
+      btn.style.cssText = 'background:rgba(79,255,176,0.1);color:var(--accent);border-color:rgba(79,255,176,0.3);margin-top:4px';
+      btn.textContent = '→ Add all & Analyse';
+      btn.onclick = () => {
+        chatExtracted.forEach(s => addChip(s));
+        updateCount();
+        toggleChat();
+        analyse();
+      };
+      document.getElementById('chat-chips').appendChild(btn);
+    }, 300);
+  }
+}
 </script>
+<!-- Chatbot -->
+<button class="chat-fab" onclick="toggleChat()" title="Describe how you feel">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <span class="chat-header-title">💬 Symptom Assistant</span>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-chips" id="chat-chips"></div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chat-input" placeholder="Describe how you feel…" onkeydown="if(event.key==='Enter') sendChat()">
+    <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
 </body>
 </html>
 
